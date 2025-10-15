@@ -36,6 +36,15 @@ This project is a hardware implementation of the Viola-Jones Haar Cascade face d
 
 ---
 
+## Objectives
+
+- Implement a real-time-capable face detector using the Viola–Jones Haar Cascade algorithm in Verilog
+- Translate OpenCV cascade data into a hardware-friendly ROM layout
+- Support 64x64 grayscale images with integral image acceleration and a sliding-window scan
+- Provide a self-contained simulation and waveform-driven debugging setup
+
+---
+
 ## Step-by-Step Usage Guide
 
 ### 1. Install Required Tools
@@ -77,12 +86,18 @@ iverilog -o run_sim tb_face_detector.v ../src/*.v
 vvp run_sim
 ```
 
-To test all images automatically:
+To test all prepared images automatically (loops through `sim/prepared_images/*.txt`):
 ```bash
 cd sim
 chmod +x test_all_images.sh
 ./test_all_images.sh
 ```
+Notes:
+- The script compiles once and runs each prepared image in turn.
+- To open GTKWave automatically after the last run, set `OPEN_WAVE=1`:
+  ```bash
+  OPEN_WAVE=1 ./test_all_images.sh
+  ```
 
 ### 5. View Results
 
@@ -103,7 +118,7 @@ Or:
 
 ### 6. Debug with Waveforms
 
-After running the simulation, GTKWave opens automatically with pre-configured signals:
+After running the simulation, you can open GTKWave with pre-configured signals:
 
 ```bash
 # Or manually open:
@@ -135,6 +150,23 @@ gtkwave waveform.vcd waveform.gtkw
 
 ---
 
+## Methodology Adopted
+
+- Data preparation
+  - Parse OpenCV's `haarcascade_frontalface_default.xml` into a packed hex memory file (`data/cascade_data.mem`)
+  - Convert raw images to 64x64 grayscale hex (`sim/prepared_images/*.txt`)
+- Hardware pipeline
+  - `integral_image`: builds integral image as pixels stream in
+  - `feature_calculator`: generates rectangle queries and accumulates weighted sums
+  - `weak_classifier`: compares feature values against thresholds
+  - `stage_evaluator`: iterates weak classifiers and thresholds per stage
+  - `control_fsm`: orchestrates window scan, stage transitions, and result reporting
+- Simulation and debug
+  - Icarus Verilog testbench streams pixels, prints results, and dumps `waveform.vcd`
+  - GTKWave + `waveform.gtkw` for focused signal inspection
+
+---
+
 ## Replication Instructions
 
 1. Clone or copy the repository.
@@ -157,6 +189,15 @@ gtkwave waveform.vcd waveform.gtkw
 - **ROM warnings ("Too many words"):** Safe to ignore - the first 16,384 words are loaded correctly.
 
 ---
+
+## Results (examples)
+
+- Console output indicates detection status and window parameters after the scan completes
+- Waveform trace shows FSM progress (`control.state`), integral image completion (`ii_done`), stage evaluation pulses, and `done`
+- Prepared inputs under `sim/prepared_images/face_XX.txt` have been validated to run through the full pipeline in simulation
+
+---
+
 
 ## References
 
