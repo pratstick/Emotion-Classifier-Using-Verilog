@@ -1,2 +1,4 @@
 /venv
 /.env
+/verilog_face_detector/sim/waveform.vcd
+/waveform.vcd
