@@ -16,7 +16,7 @@ if ! compgen -G "${PREP_DIR}/face_*.txt" > /dev/null; then
 fi
 
 echo "Compiling testbench and RTL with Icarus Verilog..."
-iverilog -o run_sim tb_face_detector.v ../src/*.v
+iverilog -g2012 -o run_sim tb_face_detector.v ../src/*.v
 
 pass=0
 fail=0

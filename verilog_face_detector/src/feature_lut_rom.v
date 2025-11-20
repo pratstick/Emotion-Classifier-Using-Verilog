@@ -1,12 +1,12 @@
-// haar_cascade_rom.v
-// ROM for storing the Haar cascade data
-// Initialized with data from cascade_data.mem
+// feature_lut_rom.v
+// ROM for storing the feature lookup table
+// Initialized with data from feature_lut.mem
 
-module haar_cascade_rom #(
-    parameter ADDR_WIDTH = 15,
+module feature_lut_rom #(
+    parameter ADDR_WIDTH = 14,
     parameter DATA_WIDTH = 32,
-    parameter DEPTH = 32768,
-    parameter MEM_FILE = "data/cascade_data.mem"
+    parameter DEPTH = 16384,
+    parameter MEM_FILE = "data/feature_lut.mem"
 )(
     input clk,
     input [ADDR_WIDTH-1:0] address,

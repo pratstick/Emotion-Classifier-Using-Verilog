@@ -4,7 +4,9 @@
 
 module feature_calculator #(
     parameter DATA_WIDTH = 32,
-    parameter SUM_WIDTH = 24
+    parameter SUM_WIDTH = 24,
+    parameter FIXED_POINT_FRAC = 16,
+    parameter FEATURE_LUT_BASE_ADDR = 0
 )(
     input clk,
     input rst,
@@ -25,19 +27,21 @@ module feature_calculator #(
     input [DATA_WIDTH-1:0] feature_data,
     
     // Output
-    output reg signed [DATA_WIDTH-1:0] feature_value,  // Calculated feature value (as float)
+    output reg signed [DATA_WIDTH-1:0] feature_value,  // Calculated feature value (fixed-point)
     output reg done
 );
 
+
     // States
-    localparam IDLE = 3'b000;
-    localparam READ_NUM_RECTS = 3'b001;
-    localparam READ_RECT = 3'b010;
-    localparam QUERY_SUM = 3'b011;
-    localparam ACCUMULATE = 3'b100;
-    localparam DONE = 3'b101;
+    localparam IDLE = 4'b0000;
+    localparam READ_FEATURE_HEADER = 4'b0001;
+    localparam READ_NUM_RECTS = 4'b0010;
+    localparam READ_RECT = 4'b0011;
+    localparam QUERY_SUM = 4'b0100;
+    localparam ACCUMULATE = 4'b0101;
+    localparam DONE_STATE = 4'b0110;
     
-    reg [2:0] state;
+    reg [3:0] state;
     reg [3:0] num_rects;          // Number of rectangles in this feature
     reg [3:0] rect_counter;       // Current rectangle being processed
     reg [13:0] base_addr;         // Base address of this feature in ROM
@@ -51,10 +55,11 @@ module feature_calculator #(
     reg signed [DATA_WIDTH-1:0] accumulator;
     reg [2:0] read_step;          // Step for reading 5 values per rectangle
     
-    // Feature section starts at line 6000 in the memory file (approximate)
-    // This is where features begin after all stage data
-    localparam FEATURE_SECTION_OFFSET = 14'd6000;
-    
+
+    reg signed [63:0] product;
+    reg signed [DATA_WIDTH-1:0] scaled_product;
+    reg signed [DATA_WIDTH-1:0] extended_rect_sum;
+
     always @(posedge clk or posedge rst) begin
         if (rst) begin
             state <= IDLE;
@@ -70,28 +75,22 @@ module feature_calculator #(
                 IDLE: begin
                     done <= 0;
                     if (start) begin
-                        state <= READ_NUM_RECTS;
+                        state <= READ_FEATURE_HEADER;
                         accumulator <= 0;
                         rect_counter <= 0;
-                        
-                        // Calculate base address for this feature
-                        // Each feature has variable size: 1 (count) + N_rects * 5 (data) + 1 (blank)
-                        // For simplicity, we'll use a lookup or calculate offset
-                        // Here we approximate: feature N starts at offset + N*7 (avg 2 rects/feature)
-                        base_addr <= FEATURE_SECTION_OFFSET + (feature_index * 7);
-                        feature_addr <= FEATURE_SECTION_OFFSET + (feature_index * 7);
+                        feature_addr <= feature_index; // The index is the address in the LUT
                     end
                 end
                 
-                READ_NUM_RECTS: begin
-                    // Read number of rectangles (1 cycle delay for ROM)
-                    num_rects <= feature_data[3:0];  // Lower bits contain count
+                READ_FEATURE_HEADER: begin
+                    // The first word of the feature is the number of rectangles
+                    num_rects <= feature_data[3:0];
                     state <= READ_RECT;
                     read_step <= 0;
-                    rect_data_addr <= base_addr + 1;  // First rect starts after count
-                    feature_addr <= base_addr + 1;
+                    rect_data_addr <= feature_index + 1; // Start reading rects from the next address
+                    feature_addr <= feature_index + 1;
                 end
-                
+
                 READ_RECT: begin
                     // Read rectangle data: x, y, w, h, weight (5 lines)
                     case (read_step)
@@ -116,7 +115,7 @@ module feature_calculator #(
                             read_step <= 4;
                         end
                         4: begin
-                            rect_weight <= feature_data;  // Weight is a float
+                            rect_weight <= feature_data;  // Weight is a fixed-point value
                             state <= QUERY_SUM;
                             read_step <= 0;
                         end
@@ -130,25 +129,32 @@ module feature_calculator #(
                     query_y1 <= window_y + ((rect_y * window_scale) >> 8);
                     query_x2 <= window_x + (((rect_x + rect_w) * window_scale) >> 8) - 1;
                     query_y2 <= window_y + (((rect_y + rect_h) * window_scale) >> 8) - 1;
-                    query_valid <= 1;
-                    // Stay in QUERY_SUM state until we get a response
+                    
                     if (rect_sum_valid) begin
                         query_valid <= 0;
                         state <= ACCUMULATE;
+                    end else begin
+                        query_valid <= 1;  // Keep query_valid HIGH while waiting
                     end
                 end
                 
                 ACCUMULATE: begin
                     // Process the received rect_sum
-                    if (1) begin  // rect_sum is already valid from previous state
+                    if (rect_sum_valid) begin
                         // Accumulate: feature_value += rect_sum * weight
-                        // Note: This is simplified - actual implementation needs float multiply
-                        accumulator <= accumulator + (rect_sum * rect_weight);
+                        // Perform fixed-point multiplication
+                        extended_rect_sum = rect_sum;
+                        product = extended_rect_sum * rect_weight;
+                        
+                        // Scale back by fractional bits
+                        scaled_product = product >> FIXED_POINT_FRAC;
+                        
+                        accumulator <= accumulator + scaled_product;
                         
                         // Move to next rectangle
                         rect_counter <= rect_counter + 1;
                         if (rect_counter + 1 >= num_rects) begin
-                            state <= DONE;
+                            state <= DONE_STATE;
                         end else begin
                             state <= READ_RECT;
                             rect_data_addr <= rect_data_addr + 5;
@@ -157,7 +163,7 @@ module feature_calculator #(
                     end
                 end
                 
-                DONE: begin
+                DONE_STATE: begin
                     feature_value <= accumulator;
                     done <= 1;
                     state <= IDLE;

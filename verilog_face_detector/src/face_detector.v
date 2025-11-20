@@ -5,7 +5,8 @@ module face_detector #(
     parameter IMG_WIDTH = 64,
     parameter IMG_HEIGHT = 64,
     parameter PIXEL_WIDTH = 8,
-    parameter DATA_WIDTH = 32
+    parameter DATA_WIDTH = 32,
+    parameter FIXED_POINT_FRAC = 16
 )(
     input clk,
     input rst,
@@ -35,8 +36,11 @@ module face_detector #(
 
     wire [7:0] window_x, window_y, window_scale;
 
-    wire [13:0] cascade_addr, feature_addr;
-    wire [DATA_WIDTH-1:0] cascade_data, feature_data;
+    wire [13:0] cascade_addr;
+    wire [DATA_WIDTH-1:0] cascade_data;
+    wire [13:0] feature_lut_addr;
+    wire [DATA_WIDTH-1:0] feature_lut_data;
+
 
     // Mux for cascade ROM address
     assign cascade_addr = eval_cascade_state ? se_cascade_addr : fsm_cascade_addr;
@@ -75,7 +79,7 @@ module face_detector #(
 
     // Haar Cascade ROM
     haar_cascade_rom #(
-        .ADDR_WIDTH(14),
+        .ADDR_WIDTH(15),
         .DATA_WIDTH(DATA_WIDTH)
     ) cascade_rom (
         .clk(clk),
@@ -83,20 +87,22 @@ module face_detector #(
         .data(cascade_data)
     );
 
-    // Feature ROM
-    feature_rom #(
+    // Feature LUT ROM
+    feature_lut_rom #(
         .ADDR_WIDTH(14),
         .DATA_WIDTH(DATA_WIDTH)
-    ) feat_rom (
+    ) feature_lut_rom (
         .clk(clk),
-        .address(feature_addr),
-        .data(feature_data)
+        .address(feature_lut_addr),
+        .data(feature_lut_data)
     );
 
     // Feature Calculator
     feature_calculator #(
         .DATA_WIDTH(DATA_WIDTH),
-        .SUM_WIDTH(24)
+        .SUM_WIDTH(24),
+        .FIXED_POINT_FRAC(FIXED_POINT_FRAC),
+        .FEATURE_LUT_BASE_ADDR(0)
     ) feat_calc (
         .clk(clk),
         .rst(rst),
@@ -112,8 +118,8 @@ module face_detector #(
         .query_valid(query_valid),
         .rect_sum(rect_sum),
         .rect_sum_valid(rect_sum_valid),
-        .feature_addr(feature_addr),
-        .feature_data(feature_data),
+        .feature_addr(feature_lut_addr),
+        .feature_data(feature_lut_data),
         .feature_value(feature_value),
         .done(calc_done)
     );
