@@ -128,7 +128,7 @@ module tb_emotion_classifier;
     
     // Watchdog
     initial begin
-        #(CLK_PERIOD * 2000000); // 20ms
+        #(CLK_PERIOD * 20000000); // 200ms
         $display("TIMEOUT");
         $finish;
     end

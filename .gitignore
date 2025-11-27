@@ -1,6 +1,27 @@
+# Python virtual environment
 /venv
-/.env
+venv/
+*.pyc
+__pycache__/
+.env
+
+# Simulation outputs
 /verilog_face_detector/sim/waveform.vcd
+/verilog_face_detector/sim/run_sim
+/verilog_face_detector/sim/*.log
 /waveform.vcd
 waveform.vcd
-verilog_face_detector/sim/waveform.vcd
+*.vcd
+
+# VPI compiled modules
+/verilog_face_detector/vpi/*.vpi
+/verilog_face_detector/vpi/*.o
+/verilog_face_detector/vpi/*.vpi.o
+
+# Log files
+*.log
+/tmp/*.log
+
+# Large model files (optional - uncomment if you don't want to track models)
+# /verilog_face_detector/models/*.h5
+# /verilog_face_detector/models/*.hdf5

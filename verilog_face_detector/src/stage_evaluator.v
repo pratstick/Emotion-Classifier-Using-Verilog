@@ -8,12 +8,12 @@ module stage_evaluator #(
     input clk,
     input rst,
     input start,                                    // Start stage evaluation
-    input [13:0] classifier_base_addr,              // Base address for this stage's classifiers
+    input [16:0] classifier_base_addr,              // Base address for this stage's classifiers
     input signed [DATA_WIDTH-1:0] stage_threshold,  // Stage threshold
     input [15:0] num_classifiers,                   // Number of weak classifiers in stage
 
     // Interface to cascade ROM
-    output reg [13:0] cascade_addr,
+    output reg [16:0] cascade_addr,
     input [DATA_WIDTH-1:0] cascade_data,
 
     // Interface to feature calculator
@@ -48,7 +48,7 @@ module stage_evaluator #(
     reg [2:0] state;
     reg [15:0] classifier_counter;
     reg signed [DATA_WIDTH-1:0] stage_sum;  // Sum of all weak classifier outputs
-    reg [13:0] current_classifier_addr;     // Address of current classifier data being read
+    reg [16:0] current_classifier_addr;     // Address of current classifier data being read
     reg [2:0] rom_read_step;                // Track which parameter we're reading
 
     // Temporary storage for classifier parameters
@@ -165,6 +165,17 @@ module stage_evaluator #(
                 
                 default: state <= IDLE;
             endcase
+        end
+    end
+
+    // Debug logging
+    reg [2:0] prev_state;
+    initial prev_state = 3'h7;
+    always @(posedge clk) begin
+        if (state != prev_state) begin
+            $display("[SE] Time: %t | State: %d | Classifier: %d | Sum: %d", 
+                     $time, state, classifier_counter, stage_sum);
+            prev_state <= state;
         end
     end
 

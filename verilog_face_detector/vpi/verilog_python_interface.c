@@ -19,9 +19,11 @@ int get_arg_val(vpiHandle arg) {
 // Note: We are omitting the memory argument for simplicity in this VPI 
 // and assuming the Python side just needs coordinates or we rely on the test setup.
 // To truly send pixels, we'd need to iterate the Verilog memory array.
-static int send_roi_calltf(char* user_data) {
+static PLI_INT32 send_roi_calltf(PLI_BYTE8* user_data) {
     vpiHandle systf_handle, args_iter, arg;
     int x, y, w, h;
+    
+    (void)user_data;  // Mark as unused to avoid warning
     
     systf_handle = vpi_handle(vpiSysTfCall, NULL);
     args_iter = vpi_iterate(vpiArgument, systf_handle);
@@ -90,7 +92,7 @@ static int send_roi_calltf(char* user_data) {
 }
 
 // Registration
-void send_roi_register() {
+void send_roi_register(void) {
     s_vpi_systf_data tf_data;
     tf_data.type = vpiSysTask;
     tf_data.sysfunctype = 0;
@@ -102,7 +104,7 @@ void send_roi_register() {
     vpi_register_systf(&tf_data);
 }
 
-void (*vlog_startup_routines[])() = {
+void (*vlog_startup_routines[])(void) = {
     send_roi_register,
     0
 };

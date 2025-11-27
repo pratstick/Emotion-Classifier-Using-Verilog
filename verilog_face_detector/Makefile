@@ -57,7 +57,7 @@ compile: vpi
 	@echo "Compiling Verilog simulation..."
 	cd $(SIM_DIR) && iverilog -o run_sim \
 		-m ../$(VPI_DIR)/verilog_python_interface.vpi \
-		$(TB_EMOTION) ../$(SRC_DIR)/*.v
+		tb_emotion_classifier.v ../$(SRC_DIR)/*.v
 	@echo "Simulation compiled"
 
 # Run emotion classification co-simulation

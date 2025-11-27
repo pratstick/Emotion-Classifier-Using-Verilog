@@ -3,10 +3,10 @@
 // Initialized with data from feature_lut.mem
 
 module feature_lut_rom #(
-    parameter ADDR_WIDTH = 14,
+    parameter ADDR_WIDTH = 17,
     parameter DATA_WIDTH = 32,
-    parameter DEPTH = 16384,
-    parameter MEM_FILE = "data/feature_lut.mem"
+    parameter DEPTH = 131072,
+    parameter MEM_FILE = "../data/feature_lut.mem"
 )(
     input clk,
     input [ADDR_WIDTH-1:0] address,

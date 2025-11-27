@@ -3,10 +3,10 @@
 // Initialized with data from cascade_data.mem
 
 module haar_cascade_rom #(
-    parameter ADDR_WIDTH = 15,
+    parameter ADDR_WIDTH = 17,
     parameter DATA_WIDTH = 32,
-    parameter DEPTH = 32768,
-    parameter MEM_FILE = "data/cascade_data.mem"
+    parameter DEPTH = 131072,
+    parameter MEM_FILE = "../data/cascade_data.mem"
 )(
     input clk,
     input [ADDR_WIDTH-1:0] address,

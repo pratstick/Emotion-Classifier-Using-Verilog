@@ -23,7 +23,7 @@ module feature_calculator #(
     input rect_sum_valid,
     
     // Interface to feature ROM
-    output reg [13:0] feature_addr,
+    output reg [16:0] feature_addr,
     input [DATA_WIDTH-1:0] feature_data,
     
     // Output
@@ -44,8 +44,8 @@ module feature_calculator #(
     reg [3:0] state;
     reg [3:0] num_rects;          // Number of rectangles in this feature
     reg [3:0] rect_counter;       // Current rectangle being processed
-    reg [13:0] base_addr;         // Base address of this feature in ROM
-    reg [13:0] rect_data_addr;    // Address for rectangle data
+    reg [16:0] base_addr;         // Base address of this feature in ROM
+    reg [16:0] rect_data_addr;    // Address for rectangle data
     
     // Rectangle data
     reg [15:0] rect_x, rect_y, rect_w, rect_h;
@@ -171,6 +171,17 @@ module feature_calculator #(
                 
                 default: state <= IDLE;
             endcase
+        end
+    end
+
+    // Debug logging
+    reg [3:0] prev_state;
+    initial prev_state = 4'hF;
+    always @(posedge clk) begin
+        if (state != prev_state) begin
+            $display("[FC] Time: %t | State: %d | Rect: %d/%d | QV: %d | RSV: %d", 
+                     $time, state, rect_counter, num_rects, query_valid, rect_sum_valid);
+            prev_state <= state;
         end
     end
 

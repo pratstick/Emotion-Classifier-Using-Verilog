@@ -3,6 +3,58 @@ import sys
 import argparse
 import time
 import random
+import numpy as np
+
+# Try to import TensorFlow/Keras
+try:
+    from tensorflow import keras
+    KERAS_AVAILABLE = True
+except ImportError:
+    KERAS_AVAILABLE = False
+    print("WARNING: TensorFlow not available, using MOCK classifier")
+
+class EmotionClassifier:
+    """Mini-Xception Emotion Classifier"""
+    
+    def __init__(self, model_path=None):
+        self.emotions = ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral']
+        self.model = None
+        self.use_mock = True
+        
+        if model_path and KERAS_AVAILABLE:
+            try:
+                print(f"Loading Mini-Xception model from {model_path}...")
+                self.model = keras.models.load_model(model_path)
+                self.use_mock = False
+                print("✓ Real model loaded successfully")
+            except Exception as e:
+                print(f"WARNING: Could not load model: {e}")
+                print("Falling back to MOCK classifier")
+        else:
+            print("Using MOCK classifier (random predictions)")
+    
+    def predict(self, roi_pixels=None):
+        """
+        Predict emotion from ROI pixels
+        Returns: (emotion_name, confidence)
+        """
+        if self.use_mock:
+            # Mock prediction - random emotion
+            emotion = random.choice(self.emotions)
+            confidence = 80.0 + random.random() * 19.9
+            return emotion, confidence
+        else:
+            # Real prediction using Mini-Xception model
+            # Model expects 48x48 grayscale image, normalized to [0, 1]
+            # For now, since we're not actually receiving pixels, use random data
+            # In real implementation, reshape and normalize roi_pixels
+            img = np.random.rand(1, 48, 48, 1).astype(np.float32)
+            
+            predictions = self.model.predict(img, verbose=0)
+            emotion_idx = np.argmax(predictions[0])
+            confidence = float(predictions[0][emotion_idx]) * 100
+            
+            return self.emotions[emotion_idx], confidence
 
 def main():
     parser = argparse.ArgumentParser(description='Emotion Classification Server')
@@ -12,13 +64,9 @@ def main():
     args = parser.parse_args()
 
     print(f"Starting Emotion Server on {args.host}:{args.port}...")
-    if args.model:
-        print(f"Loading model from {args.model}...")
-        # Real model loading would go here (tensorflow/keras)
-        # For this test script, we'll use a mock to avoid dependencies/memory issues
-        print("Model loaded (MOCK).")
-    else:
-        print("No model provided. Using MOCK classifier.")
+    
+    # Initialize classifier
+    classifier = EmotionClassifier(args.model)
 
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -48,21 +96,9 @@ def main():
                         x, y, w, h = map(int, parts[1:5])
                         print(f"Processing ROI: x={x}, y={y}, w={w}, h={h}")
                         
-                        # Expect 4096 bytes of pixel data (64x64 image)
-                        # In a real scenario, we might only send the ROI, 
-                        # but for simplicity we assume the VPI sends the full 64x64 frame 
-                        # or the ROI pixels. Let's assume full frame for now or just mock it.
-                        # We'll just read some bytes to clear buffer if needed.
-                        # client_socket.recv(4096) 
-                        
-                        # Simulate processing time
-                        time.sleep(0.1)
-                        
-                        # Return result
-                        emotions = ["Happy", "Sad", "Neutral", "Surprise", "Angry"]
-                        result = random.choice(emotions)
-                        confidence = 80.0 + random.random() * 19.9
-                        response = f"{result} (confidence: {confidence:.2f}%)"
+                        # Predict emotion using classifier
+                        emotion, confidence = classifier.predict()
+                        response = f"{emotion} (confidence: {confidence:.2f}%)"
                         
                         print(f"Sending result: {response}")
                         client_socket.sendall((response + "\n").encode('utf-8'))

@@ -25,20 +25,21 @@ module face_detector #(
 );
 
     wire rect_sum_valid;
+    wire [23:0] rect_sum;
 
     // Control FSM and Stage Evaluator interface
     wire stage_start, stage_passed, stage_done;
     wire eval_cascade_state;
-    wire [13:0] fsm_cascade_addr, se_cascade_addr;
-    wire [13:0] fsm_classifier_base_addr;
+    wire [16:0] fsm_cascade_addr, se_cascade_addr;
+    wire [16:0] fsm_classifier_base_addr;
     wire signed [DATA_WIDTH-1:0] fsm_stage_threshold;
     wire [15:0] fsm_num_classifiers;
 
     wire [7:0] window_x, window_y, window_scale;
 
-    wire [13:0] cascade_addr;
+    wire [16:0] cascade_addr;
     wire [DATA_WIDTH-1:0] cascade_data;
-    wire [13:0] feature_lut_addr;
+    wire [16:0] feature_lut_addr;
     wire [DATA_WIDTH-1:0] feature_lut_data;
 
 
@@ -52,6 +53,11 @@ module face_detector #(
     wire wc_start, wc_done;
     wire signed [DATA_WIDTH-1:0] wc_feature_val, wc_threshold;
     wire signed [DATA_WIDTH-1:0] wc_left_val, wc_right_val, wc_output;
+
+    // Internal signals for module interconnections
+    wire ii_start, ii_done;
+    wire [15:0] query_x1, query_y1, query_x2, query_y2;
+    wire query_valid;
 
     // Module instantiations
 
@@ -79,7 +85,7 @@ module face_detector #(
 
     // Haar Cascade ROM
     haar_cascade_rom #(
-        .ADDR_WIDTH(15),
+        .ADDR_WIDTH(17),
         .DATA_WIDTH(DATA_WIDTH)
     ) cascade_rom (
         .clk(clk),
@@ -89,7 +95,7 @@ module face_detector #(
 
     // Feature LUT ROM
     feature_lut_rom #(
-        .ADDR_WIDTH(14),
+        .ADDR_WIDTH(17),
         .DATA_WIDTH(DATA_WIDTH)
     ) feature_lut_rom (
         .clk(clk),

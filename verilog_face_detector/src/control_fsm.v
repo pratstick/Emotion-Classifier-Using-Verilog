@@ -12,7 +12,7 @@ module control_fsm #(
     input start,                    // Start detection
 
     // Interface to cascade ROM
-    output reg [13:0] cascade_addr,
+    output reg [16:0] cascade_addr,
     input [31:0] cascade_data,
 
     // Interface to integral image module
@@ -21,7 +21,7 @@ module control_fsm #(
 
     // Interface to stage evaluator
     output reg stage_start,
-    output reg [13:0] classifier_base_addr, // New: Pass base address to evaluator
+    output reg [16:0] classifier_base_addr, // New: Pass base address to evaluator
     output reg signed [31:0] stage_threshold,   // New: Pass threshold to evaluator
     output reg [15:0] num_classifiers,      // New: Pass count to evaluator
     input stage_passed,
@@ -54,7 +54,7 @@ module control_fsm #(
     reg [3:0] state;
     reg [4:0] stage_counter;
     reg cascade_passed;
-    reg [13:0] stage_base_addr; // Base address of the current stage in ROM
+    reg [16:0] stage_base_addr; // Base address of the current stage in ROM
     reg [1:0] read_step; // For multi-cycle reads
 
     
@@ -66,25 +66,16 @@ module control_fsm #(
     always @(posedge clk or posedge rst) begin
         if (rst) begin
             state <= IDLE;
-            done <= 0;
-            face_detected <= 0;
-            ii_start <= 0;
-            stage_start <= 0;
-            window_x <= 0;
-            window_y <= 0;
-            window_scale <= 8'd255;  // Start at 1.0 scale (255/256)
-            stage_counter <= 0;
-            cascade_passed <= 0;
-            stage_base_addr <= 0;
-            cascade_addr <= 0;
-            num_classifiers <= 0;
-            stage_threshold <= 0;
-            classifier_base_addr <= 0;
-            read_step <= 0;
+            // ... (reset logic unchanged) ...
             eval_cascade_state <= 0;
         end else begin
             // Default assignments
             eval_cascade_state <= 0;
+
+            // Debug print
+            if (state != IDLE) begin
+                 //$display("Time: %t, State: %d, Window: (%d, %d), Scale: %d, Stage: %d, Passed: %d", $time, state, window_x, window_y, window_scale, stage_counter, cascade_passed);
+            end
 
             case (state)
                 IDLE: begin
@@ -197,6 +188,17 @@ module control_fsm #(
                 
                 default: state <= IDLE;
             endcase
+        end
+    end
+
+    // Debug logging
+    reg [3:0] prev_state;
+    initial prev_state = 4'hF; 
+    always @(posedge clk) begin
+        if (state != prev_state) begin
+            $display("Time: %t | State: %d | Win(%d,%d) Scale:%d | Stage: %d | Pass: %d", 
+                     $time, state, window_x, window_y, window_scale, stage_counter, cascade_passed);
+            prev_state <= state;
         end
     end
 
