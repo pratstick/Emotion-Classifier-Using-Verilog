@@ -27,7 +27,7 @@ SIM_EXEC = $(SIM_DIR)/run_sim
 IMAGE_FILE = $(SIM_DIR)/image.txt
 
 # Python server
-PYTHON = python3
+PYTHON = ./venv/bin/python
 EMOTION_SERVER = emotion_server.py
 MODELS_DIR = models
 EMOTION_MODEL = $(MODELS_DIR)/emotion_mini_xception.h5

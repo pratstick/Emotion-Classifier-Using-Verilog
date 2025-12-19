@@ -169,10 +169,12 @@ module control_fsm #(
                     if (window_x + MIN_WINDOW_SIZE + STEP_SIZE < IMG_WIDTH) begin
                         window_x <= window_x + STEP_SIZE;
                         state <= INIT_SCAN;
+                        stage_base_addr <= 0; // Reset for new window
                     end else if (window_y + MIN_WINDOW_SIZE + STEP_SIZE < IMG_HEIGHT) begin
                         window_x <= 0;
                         window_y <= window_y + STEP_SIZE;
                         state <= INIT_SCAN;
+                        stage_base_addr <= 0; // Reset for new window
                     end else begin
                         // Scanned entire image at this scale
                         state <= FINISH;

@@ -132,6 +132,7 @@ module feature_calculator #(
                     
                     if (rect_sum_valid) begin
                         query_valid <= 0;
+                        extended_rect_sum <= rect_sum; // Latch the result
                         state <= ACCUMULATE;
                     end else begin
                         query_valid <= 1;  // Keep query_valid HIGH while waiting
@@ -139,27 +140,26 @@ module feature_calculator #(
                 end
                 
                 ACCUMULATE: begin
-                    // Process the received rect_sum
-                    if (rect_sum_valid) begin
-                        // Accumulate: feature_value += rect_sum * weight
-                        // Perform fixed-point multiplication
-                        extended_rect_sum = rect_sum;
-                        product = extended_rect_sum * rect_weight;
-                        
-                        // Scale back by fractional bits
-                        scaled_product = product >> FIXED_POINT_FRAC;
-                        
-                        accumulator <= accumulator + scaled_product;
-                        
-                        // Move to next rectangle
-                        rect_counter <= rect_counter + 1;
-                        if (rect_counter + 1 >= num_rects) begin
-                            state <= DONE_STATE;
-                        end else begin
-                            state <= READ_RECT;
-                            rect_data_addr <= rect_data_addr + 5;
-                            feature_addr <= rect_data_addr + 5;
-                        end
+                    // Calculate feature value using latched sum
+                    // Accumulate: feature_value += rect_sum * weight
+                    // Perform fixed-point multiplication
+                    
+                    // Note: extended_rect_sum is already latched in previous state
+                    product = extended_rect_sum * rect_weight;
+                    
+                    // Scale back by fractional bits
+                    scaled_product = product >> FIXED_POINT_FRAC;
+                    
+                    accumulator <= accumulator + scaled_product;
+                    
+                    // Move to next rectangle
+                    rect_counter <= rect_counter + 1;
+                    if (rect_counter + 1 >= num_rects) begin
+                        state <= DONE_STATE;
+                    end else begin
+                        state <= READ_RECT;
+                        rect_data_addr <= rect_data_addr + 5;
+                        feature_addr <= rect_data_addr + 5;
                     end
                 end
                 
